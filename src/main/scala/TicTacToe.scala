@@ -14,11 +14,8 @@ class TicTacToe(size: Int = 3) extends GameRunner {
     } yield (r, c)
 
     val isEndGame: Boolean = {
-      val rowSets = rows(board) map Set.apply
-      val colSets = columns(board) map Set.apply
-      val diagonalSets = diagonals(board) map Set.apply
-      def checkWinner(s: Set[Player]) = s.size == 1 && !s.contains(None)
-      (rowSets ++ colSets ++ diagonalSets) exists checkWinner
+      val sets = (rows(board) ++ columns(board) ++ diagonals(board)) map Set.apply
+      sets exists { s => s.size == 1 && !s.contains(None) }
     }
 
     def play(move: Move): State = move match { case (player, (r, c)) =>
@@ -58,8 +55,7 @@ class TicTacToe(size: Int = 3) extends GameRunner {
       }
       val move = (nextPlayer, position)
       val newState = state.play(move)
-      val newPlayer = if (nextPlayer == X) O else X
-      if (newState.isEndGame) nextPlayer else iterate(newState, newPlayer)
+      if (newState.isEndGame) nextPlayer else iterate(newState, nextPlayer.opponent)
     }
     iterate(initialState, X)
   }
@@ -70,14 +66,18 @@ object TicTacToe {
   type Position = (Int, Int) // (Row, Column)
   type Move = (Player, Position)
 
-  trait Player
+  trait Player {
+    val opponent: Player = None
+  }
 
   object X extends Player {
     override def toString = "X"
+    override val opponent = O
   }
 
   object O extends Player {
     override def toString = "O"
+    override val opponent = X
   }
 
   object None extends Player {
