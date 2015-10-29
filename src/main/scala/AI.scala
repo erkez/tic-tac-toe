@@ -2,76 +2,86 @@ import State.Move
 import TicTacToe._
 
 trait AI extends GameRunner {
+  type Row = Vector[Player]
+
+  /**
+   * Returns true if attacker can win with a next move
+   * @param attacker Attacker of row
+   * @param row Row to assess threaten
+   * @return True of threatened
+   */
+  def isRowThreatened(attacker: Player)(row: Row): Boolean = {
+    val attackCount = row count (_==attacker)
+    lazy val defenderCount = row count (_==attacker.opponent)
+    attackCount == (boardSize - 1) && defenderCount == 0
+  }
+  
+  def hasThreat(attacker: Player)(implicit board: Board): Boolean =
+    board.sequences exists isRowThreatened(attacker)
+
+  def hasFork(attacker: Player)(implicit board: Board): Boolean =
+    (board.sequences count isRowThreatened(attacker)) > 1
+
+  def makeMoves(state: State, player: Player): Stream[Move] =
+    for (pos <- state.availablePositions.toStream) yield (player, pos)
+  
   def findBestMove(state: State, player: Player): Move = {
-    def isImminentThreat(seq: Vector[Player]): Boolean = {
-      val opponentCount = seq count (_==player.opponent)
-      lazy val currentPlayerCount = seq count (_==player)
-      opponentCount == (boardSize - 1) && currentPlayerCount == 0
-    }
-
-    def hasImminentThread(board: Board): Boolean = countSequence (board) (isImminentThreat) > 0
-
-    def countSequence(board: Board)(predicate: Vector[Player] => Boolean): Int = {
-      val sequences = board.rows ++ board.columns ++ board.diagonals
-      sequences count predicate
-    }
-
-    def makeMoves(state: State, player: Player) =
-      for (pos <- state.availablePositions) yield (player, pos)
-
-    val availableMoves = makeMoves(state, player).toStream
+    val availableMoves = makeMoves(state, player)
+    val opponent = player.opponent
+    implicit val board = state.board
 
     lazy val winningPositions: Stream[Move] = for {
       move <- availableMoves
       if (state play move).isEndGame
     } yield move
 
-    //if (!winningPositions.isEmpty) println("winningPositions " + winningPositions.head)
-
     lazy val blockingPositions: Stream[Move] =
-      if (!hasImminentThread(state.board)) Stream()
+      if (!hasThreat(opponent)) Stream()
       else for {
         move <- availableMoves
-        if !hasImminentThread((state play move).board)
+        if !hasThreat(opponent)((state play move).board)
       } yield move
 
-    //if (!blockingPositions.isEmpty) println("blockingPositions " + blockingPositions.head)
-
-    lazy val forkingPositions: Stream[Move] = ???
-
-    lazy val blockForkingPositions: Stream[Move] = for {
+    lazy val forkingPositions: Stream[Move] = for {
       move <- availableMoves
-      forkingState = state play move
-      endGameCount = (makeMoves(forkingState, player.opponent) map forkingState.play) count (_.isEndGame)
-      if endGameCount == 0
+      newState = state play move
+      if hasFork(player)
     } yield move
 
-    //if (!blockForkingPositions.isEmpty) println("blockForkingPositions " + blockForkingPositions.head)
+    lazy val blockForkingPositions: Stream[Move] =
+      if (!hasFork(opponent)) Stream()
+      else for {
+        move <- availableMoves
+        newState = state play move
+        if !hasFork(opponent)
+      } yield move
 
-    lazy val centerMove: Stream[Move] = {
-      if (boardSize % 2 == 1) {
-        val center = boardSize / 2
-        val move = (player, (center, center))
-        if (availableMoves contains move) Stream(move) else Stream()
-      } else Stream()
+    lazy val centerMove: Stream[Move] = board.centerPosition match {
+      case None => Stream()
+      case Some(p) => if (state.availablePositions contains p) Stream((player, p)) else Stream()
     }
 
-    //if (!centerMove.isEmpty) println("centerMove " + centerMove.head)
+    lazy val oppositeCorners: Stream[Move] = for {
+      corner <- board.cornerPositions.toStream
+      oppositeCorner = board getOppositePosition corner
+      if board(corner) == opponent && board(oppositeCorner) == NoPlayer
+    } yield (player, oppositeCorner)
 
-    //if (!availableMoves.isEmpty) println("availableMoves " + availableMoves.head)
+    lazy val emptyCorners: Stream[Move] = for {
+      corner <- board.cornerPositions.toStream
+      if board(corner) == NoPlayer
+    } yield (player, corner)
 
-    lazy val oppositeCorner = ???
-    lazy val emptyCorner = ???
-    lazy val emptySide = ???
+    lazy val emptySequences: Stream[Move] = ???
 
-    val priority = winningPositions ++ blockingPositions ++
-      /*blockForkingPositions*/ centerMove ++ availableMoves
+    val priority = winningPositions ++ blockingPositions ++ forkingPositions ++
+      blockForkingPositions ++ centerMove ++ oppositeCorners ++ emptyCorners ++ availableMoves
 
     priority.head
   }
 
   override def startGame: Player = {
-    val aiPlayer = X
+    val aiPlayer = O
 
     def iterate(state: State, nextPlayer: Player): Player = {
       val moveGetter: (State, Player) => Move =
