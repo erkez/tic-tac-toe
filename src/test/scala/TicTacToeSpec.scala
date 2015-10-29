@@ -1,3 +1,0 @@
-class TicTacToeSpec extends UnitSpec {
-
-}
