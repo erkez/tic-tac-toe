@@ -1,32 +1,28 @@
-import Matrix._
 import State.Move
-import TicTacToe._
+import TicTacToe.{Player, NoPlayer}
 
-case class State(board: Board, lastMove: Move) {
-
-  val lastPlayer = lastMove._1
+case class State(board: Cube[Player], lastMove: Move) {
+  val (lastPlayer, lastPosition) = lastMove
 
   def play(move: Move): State = move match { case (player, position) =>
-    if (lastPlayer == player) throw new IllegalArgumentException(s"Player just played")
-    if (board(position) != NoPlayer) throw new IllegalArgumentException(s"Position $position already filled")
+    if (lastPlayer == player) throw new IllegalArgumentException(s"Player $lastPlayer just played")
+    if (board(position).value != NoPlayer) throw new IllegalArgumentException(s"Position $position already filled")
     else State(board.updated(player, position), move)
   }
 
-  val availablePositions = for {
-    r <- 0 until board.length
-    c <- 0 until board.length
-    if board(r)(c) == NoPlayer
-  } yield (r, c)
+  val availablePositions: Set[Cube.Position] =
+    (for (elem <- board.iterable if elem.value == NoPlayer) yield elem.position).toSet
 
   val isEndGame: Boolean = {
-    val sets = (board.rows ++ board.columns ++ board.diagonals) map (_.toSet)
-    sets exists { s => s.size == 1 && !s.contains(NoPlayer) }
+    board.sequences exists { s =>
+      val valueSet: Set[Player] = (s map (_.value)).toSet
+      valueSet.size == 1 && !valueSet.contains(NoPlayer)
+    }
   }
-
 }
 
 object State {
-  type Move = (Player, Position)
+  type Move = (TicTacToe.Player, Cube.Position)
 
-  def initial(boardSize: Int): State = State(Board.empty(boardSize), (NoPlayer, (0, 0)))
+  def initial(boardSize: Int): State = State(Cube.fill(boardSize)(NoPlayer), (NoPlayer, (0, 0, 0)))
 }

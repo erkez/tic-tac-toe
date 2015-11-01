@@ -6,6 +6,9 @@ class Cube[T] private (val size: Int, elements: Vector[T]) {
   private def positionToIndex(position: Position): Int =
     (position._1 - 1) * size * size + (position._2 - 1) * size + (position._3 - 1)
 
+  private def indexToPosition(index: Int): Position =
+    (((index / (size * size)) % size) + 1, ((index / size) % size) + 1, (index % size) + 1)
+
   private def reverseIndex(index: Int): Int = (size - index) + 1
 
   private lazy val nonDiagonals: Set[Vector[Element[T]]] =
@@ -69,6 +72,18 @@ class Cube[T] private (val size: Int, elements: Vector[T]) {
     j <- Vector(1, size)
     k <- Vector(1, size)
   } yield this(i, j, k)
+
+  def getPositionFromIndex(index: Int): Position = indexToPosition(index - 1)
+
+  def getOppositePosition(position: Position): Position = position match {
+    case (i, j, k) =>
+      def opposite(n: Int): Int = math.abs(n - (size - 1))
+      (opposite(i), opposite(j), opposite(k))
+  }
+
+  def iterable: Iterable[Element[T]] = elements.zipWithIndex map { case (e, ix) =>
+    Element(e, indexToPosition(ix))
+  }
 
   def updated(value: T, position: Position): Cube[T] =
     new Cube[T](size, elements.updated(positionToIndex(position), value))
