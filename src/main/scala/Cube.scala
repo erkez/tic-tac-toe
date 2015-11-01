@@ -73,7 +73,9 @@ class Cube[T] private (val size: Int, elements: Vector[T]) {
     k <- Vector(1, size)
   } yield this(i, j, k)
 
-  def getPositionFromIndex(index: Int): Position = indexToPosition(index - 1)
+  def getPositionFromIndex(index: Int): Option[Position] =
+    if (index > 0 && index <= size * size * size) Some(indexToPosition(index - 1))
+    else None
 
   def getOppositePosition(position: Position): Position = position match {
     case (i, j, k) =>

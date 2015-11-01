@@ -11,8 +11,12 @@ trait GameRunner {
       println(s"Player $player, type your position:")
       try {
         val input = io.StdIn.readInt()
-        state.board.getPositionFromIndex(input)
+        state.board.getPositionFromIndex(input).get
       } catch {
+        case nse: NoSuchElementException => {
+          println("Position outside valid range!")
+          readPosition
+        }
         case nfe: NumberFormatException => {
           println("Invalid input!")
           readPosition
