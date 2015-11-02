@@ -27,42 +27,24 @@ class Cube[T] private (val size: Int, elements: Vector[T]) {
 
   private def reverseIndex(index: Int): Int = (size - index) + 1
 
-  private lazy val nonDiagonals: Set[Vector[Element[T]]] =
-    (sizeRange flatMap { depth =>
-      sizeRange map { column =>
-        sizeRange map { row => this(depth, row, column) }
-      }
-    }).toSet ++
-    (sizeRange flatMap { depth =>
-      sizeRange map { row =>
-        sizeRange map { column => this(depth, row, column) }
-      }
-    }).toSet ++
-    (sizeRange flatMap { row =>
-      sizeRange map { column =>
-        sizeRange map { depth => this(depth, row, column) }
-      }
-    })
+  private lazy val nonDiagonals: Set[Vector[Element[T]]] = {
+    def sequenceGenerator[A](block: (Int, Int, Int) => A): Set[Vector[A]] =
+      (sizeRange flatMap { a => sizeRange map { b => sizeRange map { c => block(a, b, c) } } }).toSet
+    sequenceGenerator((a, b, c) => this (a, b, c)) ++
+    sequenceGenerator((a, b, c) => this (a, c, b)) ++
+    sequenceGenerator((a, b, c) => this (c, a, b))
+  }
 
-  private lazy val normalDiagonals: Set[Vector[Element[T]]] =
-    (sizeRange map { depth =>
-      sizeRange map { diagonal => this(depth, diagonal, diagonal)}
-    }).toSet ++
-    (sizeRange map { depth =>
-      sizeRange map { diagonal => this(depth, diagonal, reverseIndex(diagonal))}
-    }).toSet ++
-    (sizeRange map { column =>
-      sizeRange map { diagonal => this(diagonal, diagonal, column)}
-    }).toSet ++
-    (sizeRange map { column =>
-      sizeRange map { diagonal => this(reverseIndex(diagonal), diagonal, column)}
-    }).toSet ++
-    (sizeRange map { row =>
-      sizeRange map { diagonal => this(diagonal, row, diagonal)}
-    }).toSet ++
-    (sizeRange map { row =>
-      sizeRange map { diagonal => this(reverseIndex(diagonal), row, diagonal)}
-    }).toSet
+  private lazy val normalDiagonals: Set[Vector[Element[T]]] = {
+    def sequenceGenerator[A](block: (Int, Int) => A): Set[Vector[A]] =
+      (sizeRange map { a => sizeRange map { b => block(a, b)}}).toSet
+    sequenceGenerator((a, b) => this (a, b, b)) ++
+    sequenceGenerator((a, b) => this (b, b, a)) ++
+    sequenceGenerator((a, b) => this (b, a, b)) ++
+    sequenceGenerator((a, b) => this (a, b, reverseIndex(b))) ++
+    sequenceGenerator((a, b) => this (reverseIndex(b), a, b)) ++
+    sequenceGenerator((a, b) => this (reverseIndex(b), b, a))
+  }
 
   private lazy val cubeDiagonals: Set[Vector[Element[T]]] = {
     val ds = (sizeRange map { diagonal => (
