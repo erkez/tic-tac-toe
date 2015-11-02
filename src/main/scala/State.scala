@@ -6,7 +6,7 @@ case class State(board: Cube[Player], lastMove: Move) {
 
   def play(move: Move): State = move match { case (player, position) =>
     if (lastPlayer == player) throw new IllegalArgumentException(s"Player $lastPlayer just played")
-    if (board(position).value != NoPlayer) throw new IllegalArgumentException(s"Position $position already filled")
+    else if (board(position).value != NoPlayer) throw new IllegalArgumentException(s"Position $position already filled")
     else State(board.updated(player, position), move)
   }
 

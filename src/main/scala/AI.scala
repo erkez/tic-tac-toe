@@ -93,24 +93,10 @@ trait AI extends GameRunner {
     priority.head
   }
 
-  override def startGame: Player = {
+  override def getTurnMove(state: State, player: Player): Move = {
     val aiPlayer = O
-
-    def iterate(state: State, nextPlayer: Player): Player = {
-      val moveGetter: (State, Player) => Move =
-        if (nextPlayer == aiPlayer) findBestMove
-        else getHumanMove
-
-      state.winner match {
-        case None =>
-          val newState = state play moveGetter(state, nextPlayer)
-          iterate(newState, nextPlayer.opponent)
-        case Some(player) =>
-          showState(state)
-          player
-      }
-    }
-
-    iterate(initialState, X)
+    def moveGetter: (State, Player) => Move  =
+      if (player == aiPlayer) findBestMove else getHumanMove
+    moveGetter(state, player)
   }
 }
