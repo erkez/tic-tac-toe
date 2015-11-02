@@ -91,16 +91,17 @@ trait AI extends GameRunner {
     def iterate(state: State, nextPlayer: Player): Player = {
       val moveGetter: (State, Player) => Move =
         if (nextPlayer == aiPlayer) findBestMove else {
-          println(state.board)
+          println(state.board.showWithPositions(NoPlayer))
           getHumanMove
         }
 
-      if (state.availablePositions.isEmpty) {
-        return NoPlayer
-      }
+      if (state.availablePositions.isEmpty) return NoPlayer
 
       val newState = state play moveGetter(state, nextPlayer)
-      if (newState.isEndGame) nextPlayer else iterate(newState, nextPlayer.opponent)
+      if (newState.isEndGame) {
+        println(newState.board.showWithPositions(NoPlayer))
+        nextPlayer
+      } else iterate(newState, nextPlayer.opponent)
     }
 
     iterate(initialState, X)

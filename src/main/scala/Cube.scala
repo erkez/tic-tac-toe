@@ -92,6 +92,29 @@ class Cube[T] private (val size: Int, elements: Vector[T]) {
 
   def apply(position: Position): Element[T] =
     Element(elements(positionToIndex(position)), position)
+
+  def showWithPositions(emptyElement: T) = {
+    def split[A](from: Iterable[A], n: Int): Iterable[Iterable[A]] =
+      sizeRange.foldLeft(Vector[Iterable[A]]()) { (v, i) =>
+        v :+ from.slice(n * (i - 1), n * i)
+      }
+
+    def positionOrElement(zip: (T, Int)): String = zip match { case (element, index) =>
+      (if (element == emptyElement) index + 1 else element).toString
+    }
+
+    def planes = split(elements.zipWithIndex map positionOrElement, size * size)
+    def rows[A](plane: Iterable[A]) = split(plane, size)
+    val cube = split(planes map rows, size)
+
+    for {
+      plane <- cube
+      row <- plane
+      el <- row
+    } println(el mkString " ")
+  }
+
+  override def toString = elements.toString()
 }
 
 object Cube {
