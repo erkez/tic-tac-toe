@@ -1,6 +1,9 @@
 import State.Move
 import TicTacToe._
 
+/**
+ * Trait to use with TicTacToe to play against the AI
+ */
 trait AI extends GameRunner {
 
   /**
@@ -15,21 +18,57 @@ trait AI extends GameRunner {
     attackCount == (boardSize - 1) && defenderCount == 0
   }
 
+  /**
+   * Verifies if row is blocked by the opponent of `attacker`
+   * @param attacker Attacker of row
+   * @param row Row to assess blocking
+   * @return True if blocked
+   */
   def isRowBlocked(attacker: Player)(row: Vector[Cube.Element[Player]]): Boolean =
     row exists (_.value == attacker.opponent)
-  
+
+  /**
+   * Verifies if the `attacker` has a threatening sequence in `board`
+   * @param attacker Attacker to consider
+   * @param board Board to assess threatens
+   * @return True if the board has at least one threat
+   */
   def hasThreat(attacker: Player)(implicit board: Cube[Player]): Boolean =
     board.sequences exists isRowThreatened(attacker)
 
+  /**
+   * Counts the number of threatening sequences in the `board`
+   * @param attacker Attacker to consider
+   * @param board Board to count threatens
+   * @return The number of threatens
+   */
   def getThreatCount(attacker: Player)(implicit board: Cube[Player]): Int =
     board.sequences count isRowThreatened(attacker)
 
+  /**
+   * Basic wrapper for `getThreatCount` with count greater than 1.
+   * @param attacker Attacker to consider
+   * @param board Board to assess fork
+   * @return True if fork exists
+   */
   def hasFork(attacker: Player)(implicit board: Cube[Player]): Boolean =
     getThreatCount(attacker) > 1
 
+  /**
+   * Creates a stream of available moves for `player`
+   * @param state State to get available moves from
+   * @param player Player to consider
+   * @return
+   */
   def makeMoves(state: State, player: Player): Stream[Move] =
     for (pos <- state.availablePositions.toStream) yield (player, pos)
-  
+
+  /**
+   * Main AI method. Responsible to return the best available move. Obvious, huh?
+   * @param state State to consider
+   * @param player The AI player
+   * @return The best possible move
+   */
   def findBestMove(state: State, player: Player): Move = {
     val availableMoves = makeMoves(state, player)
     val opponent = player.opponent
@@ -93,7 +132,13 @@ trait AI extends GameRunner {
     priority.head
   }
 
-  override def getTurnMove(state: State, player: Player): Move = {
+  /**
+   * Internal method to get turn move
+   * @param state State to consider
+   * @param player Player to consider
+   * @return Returns move for state and player
+   */
+  protected override def getTurnMove(state: State, player: Player): Move = {
     val aiPlayer = O
     def moveGetter: (State, Player) => Move  =
       if (player == aiPlayer) findBestMove else getHumanMove

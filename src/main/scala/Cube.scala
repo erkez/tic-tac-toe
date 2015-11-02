@@ -1,11 +1,27 @@
+/**
+ * Cube class to place elements and extract sequences
+ * @param size The size of the cube
+ * @param elements The elements of the cube
+ * @tparam T Any type
+ */
 class Cube[T] private (val size: Int, elements: Vector[T]) {
   import Cube._
 
   private val sizeRange = Vector.range(1, size + 1)
 
+  /**
+   * Calculates 0-based index from a position
+   * @param position Position to consider
+   * @return Index in elements
+   */
   private def positionToIndex(position: Position): Int =
     (position._1 - 1) * size * size + (position._2 - 1) * size + (position._3 - 1)
 
+  /**
+   * Calculates position from a 0-based index
+   * @param index Index to consider
+   * @return Position for index in elements
+   */
   private def indexToPosition(index: Int): Position =
     (((index / (size * size)) % size) + 1, ((index / size) % size) + 1, (index % size) + 1)
 
@@ -73,26 +89,55 @@ class Cube[T] private (val size: Int, elements: Vector[T]) {
     k <- Vector(1, size)
   } yield this(i, j, k)
 
+  /**
+   * Tries to get the board position from a 1-based index
+   * @param index Index to consider
+   * @return Maybe a position, if index is valid
+   */
   def getPositionFromIndex(index: Int): Option[Position] =
     if (index > 0 && index <= size * size * size) Some(indexToPosition(index - 1))
     else None
 
+  /**
+   * Given a position, gets the opposite one
+   * @param position Position to consider
+   * @return Opposite position
+   */
   def getOppositePosition(position: Position): Position = position match {
     case (i, j, k) =>
       def opposite(n: Int): Int = math.abs(n - (size - 1))
       (opposite(i), opposite(j), opposite(k))
   }
 
+  /**
+   * Creates an iterable for all board elements
+   * @return An iterable of Elements
+   */
   def iterable: Iterable[Element[T]] = elements.zipWithIndex map { case (e, ix) =>
     Element(e, indexToPosition(ix))
   }
 
+  /**
+   * Creates a new Cube with the updated `value` in `position`
+   * @param value New value for position
+   * @param position Position to updated value
+   * @return Updated version of Cube
+   */
   def updated(value: T, position: Position): Cube[T] =
     new Cube[T](size, elements.updated(positionToIndex(position), value))
 
+  /**
+   * Returns the Cube Element for `position`
+   * @param position Position to get element from
+   * @return Element
+   */
   def apply(position: Position): Element[T] =
     Element(elements(positionToIndex(position)), position)
 
+  /**
+   * Prints the board with filled positions, if empty
+   * @param emptyElement Base empty element to equal with positions
+   */
   def showWithPositions(emptyElement: T) = {
     def split[A](from: Iterable[A], n: Int): Iterable[Iterable[A]] =
       sizeRange.foldLeft(Vector[Iterable[A]]()) { (v, i) =>
@@ -129,5 +174,12 @@ object Cube {
     }
   }
 
+  /**
+   * Creates a cube of size `size` filled with `element`
+   * @param size Size of the cube. E.g.: 3 == A 3x3x3 cube
+   * @param element Element to fill the cube with
+   * @tparam T Any value
+   * @return A Cube instance
+   */
   def fill[T](size: Int)(element: T) = new Cube[T](size, Vector.fill(size * size * size)(element))
 }

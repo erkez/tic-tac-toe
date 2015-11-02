@@ -8,6 +8,12 @@ trait GameRunner {
 
   protected def showState(state: State) = state.board.showWithPositions(NoPlayer)
 
+  /**
+   * Protected method to get the move from the console
+   * @param state State to verify if move is valid
+   * @param player Player to verify if move is valid
+   * @return A move
+   */
   protected final def getHumanMove(state: State, player: Player): Move = {
     def readPosition: Position = {
       println(s"Player $player, type your position:")
@@ -34,6 +40,10 @@ trait GameRunner {
 
   protected def getTurnMove(state: State, nextPlayer: Player): Move
 
+  /**
+   * Main game function. Starts a game.
+   * @return The winner when the game ends
+   */
   def startGame: Player = {
     def startTurn(state: State, nextPlayer: Player): Player = {
       state.winner match {
