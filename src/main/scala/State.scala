@@ -1,32 +1,63 @@
-import Matrix._
 import State.Move
-import TicTacToe._
+import TicTacToe.{Player, X, O, NoPlayer}
 
-case class State(board: Board, lastMove: Move) {
+/**
+ * Class to keep the state of the board
+ * @param board A cube with players
+ * @param lastMove The last played move
+ */
+case class State(board: Cube[Player], lastMove: Move) {
+  val (lastPlayer, lastPosition) = lastMove
 
-  val lastPlayer = lastMove._1
-
+  /**
+   * Creates a new state after playing `move`
+   * @param move A move to play
+   * @return New state after move
+   */
   def play(move: Move): State = move match { case (player, position) =>
-    if (lastPlayer == player) throw new IllegalArgumentException(s"Player just played")
-    if (board(position) != NoPlayer) throw new IllegalArgumentException(s"Position $position already filled")
+    if (lastPlayer == player) throw new IllegalArgumentException(s"Player $lastPlayer just played")
+    else if (board(position).value != NoPlayer) throw new IllegalArgumentException(s"Position $position already filled")
     else State(board.updated(player, position), move)
   }
 
-  val availablePositions = for {
-    r <- 0 until board.length
-    c <- 0 until board.length
-    if board(r)(c) == NoPlayer
-  } yield (r, c)
+  /**
+   * Set of available positions for state
+   */
+  val availablePositions: Set[Cube.Position] =
+    (for (elem <- board.iterable if elem.value == NoPlayer) yield elem.position).toSet
 
-  val isEndGame: Boolean = {
-    val sets = (board.rows ++ board.columns ++ board.diagonals) map (_.toSet)
-    sets exists { s => s.size == 1 && !s.contains(NoPlayer) }
+  /**
+   * True if the game is over
+   */
+  lazy val isEndGame: Boolean = isTie || (board.sequences exists { s =>
+    val valueSet: Set[Player] = (s map (_.value)).toSet
+    valueSet.size == 1 && !valueSet.contains(NoPlayer)
+  })
+
+  /**
+   * True if the game ended with a tie
+   */
+  lazy val isTie: Boolean = board.sequences forall { s =>
+    def containsPlayer(player: Player): Boolean = s.exists(_.value == player)
+    containsPlayer(X) && containsPlayer(O)
   }
 
+  /**
+   * The winner of the game
+   */
+  lazy val winner: Option[Player] =
+    if (isTie) Some(NoPlayer)
+    else if (isEndGame) Some(lastPlayer)
+    else None
 }
 
 object State {
-  type Move = (Player, Position)
+  type Move = (TicTacToe.Player, Cube.Position)
 
-  def initial(boardSize: Int): State = State(Board.empty(boardSize), (NoPlayer, (0, 0)))
+  /**
+   * Factory for the initial state
+   * @param boardSize Size of the board
+   * @return
+   */
+  def initial(boardSize: Int): State = State(Cube.fill(boardSize)(NoPlayer), (NoPlayer, (0, 0, 0)))
 }

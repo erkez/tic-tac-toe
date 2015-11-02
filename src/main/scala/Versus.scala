@@ -1,17 +1,7 @@
-import TicTacToe._
-
+/**
+ * Trait to use with TicTacToe to play versus
+ */
 trait Versus extends GameRunner {
-  override def startGame: Player = {
-    def iterate(state: State, nextPlayer: Player): Player = {
-      if (state.availablePositions.isEmpty) {
-        return NoPlayer
-      }
-
-      println(state.board)
-      val newState = state play getHumanMove(state, nextPlayer)
-      if (newState.isEndGame) nextPlayer else iterate(newState, nextPlayer.opponent)
-    }
-
-    iterate(initialState, X)
-  }
+  override def getTurnMove(state: State, player: TicTacToe.Player): State.Move =
+    getHumanMove(state, player)
 }
