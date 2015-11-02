@@ -21,8 +21,11 @@ trait AI extends GameRunner {
   def hasThreat(attacker: Player)(implicit board: Cube[Player]): Boolean =
     board.sequences exists isRowThreatened(attacker)
 
+  def getThreatCount(attacker: Player)(implicit board: Cube[Player]): Int =
+    board.sequences count isRowThreatened(attacker)
+
   def hasFork(attacker: Player)(implicit board: Cube[Player]): Boolean =
-    (board.sequences count isRowThreatened(attacker)) > 1
+    getThreatCount(attacker) > 1
 
   def makeMoves(state: State, player: Player): Stream[Move] =
     for (pos <- state.availablePositions.toStream) yield (player, pos)
@@ -50,11 +53,20 @@ trait AI extends GameRunner {
       if hasFork(player)
     } yield move
 
-    lazy val blockForkingPositions: Stream[Move] = ???
+    lazy val reduceDamagePositions: Stream[Move] = {
+      val threatCount = getThreatCount(opponent)
+      if (threatCount > 1)
+        for {
+          move <- availableMoves
+          newState = state play move
+          if getThreatCount(opponent) < threatCount
+        } yield move
+      else Stream()
+    }
 
     lazy val centerMove: Stream[Move] = board.center match {
-      case None => Stream()
-      case Some(center) => if (center.value == NoPlayer) Stream((player, center.position)) else Stream()
+      case Some(center) if center.value == NoPlayer => Stream((player, center.position))
+      case _ => Stream()
     }
 
     lazy val oppositeCorners: Stream[Move] = for {
@@ -75,7 +87,7 @@ trait AI extends GameRunner {
       position <- seq filter (_.value == NoPlayer) map (_.position)
     } yield (player, position)
 
-    val priority = winningPositions ++ blockingPositions ++ forkingPositions ++
+    val priority = winningPositions ++ blockingPositions ++ forkingPositions ++ reduceDamagePositions ++
       centerMove ++ oppositeCorners ++ emptyCorners ++ nonBlockedSequences ++ availableMoves
 
     priority.head
@@ -86,18 +98,17 @@ trait AI extends GameRunner {
 
     def iterate(state: State, nextPlayer: Player): Player = {
       val moveGetter: (State, Player) => Move =
-        if (nextPlayer == aiPlayer) findBestMove else {
-          println(state.board.showWithPositions(NoPlayer))
-          getHumanMove
-        }
+        if (nextPlayer == aiPlayer) findBestMove
+        else getHumanMove
 
-      if (state.availablePositions.isEmpty) return NoPlayer
-
-      val newState = state play moveGetter(state, nextPlayer)
-      if (newState.isEndGame) {
-        println(newState.board.showWithPositions(NoPlayer))
-        nextPlayer
-      } else iterate(newState, nextPlayer.opponent)
+      state.winner match {
+        case None =>
+          val newState = state play moveGetter(state, nextPlayer)
+          iterate(newState, nextPlayer.opponent)
+        case Some(player) =>
+          showState(state)
+          player
+      }
     }
 
     iterate(initialState, X)

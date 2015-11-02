@@ -1,5 +1,5 @@
 import State.Move
-import TicTacToe.{Player, NoPlayer}
+import TicTacToe.{Player, X, O, NoPlayer}
 
 case class State(board: Cube[Player], lastMove: Move) {
   val (lastPlayer, lastPosition) = lastMove
@@ -13,12 +13,20 @@ case class State(board: Cube[Player], lastMove: Move) {
   val availablePositions: Set[Cube.Position] =
     (for (elem <- board.iterable if elem.value == NoPlayer) yield elem.position).toSet
 
-  val isEndGame: Boolean = {
-    board.sequences exists { s =>
-      val valueSet: Set[Player] = (s map (_.value)).toSet
-      valueSet.size == 1 && !valueSet.contains(NoPlayer)
-    }
+  lazy val isEndGame: Boolean = isTie || (board.sequences exists { s =>
+    val valueSet: Set[Player] = (s map (_.value)).toSet
+    valueSet.size == 1 && !valueSet.contains(NoPlayer)
+  })
+
+  lazy val isTie: Boolean = board.sequences forall { s =>
+    def containsPlayer(player: Player): Boolean = s.exists(_.value == player)
+    containsPlayer(X) && containsPlayer(O)
   }
+
+  lazy val winner: Option[Player] =
+    if (isTie) Some(NoPlayer)
+    else if (isEndGame) Some(lastPlayer)
+    else None
 }
 
 object State {

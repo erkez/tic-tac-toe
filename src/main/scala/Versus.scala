@@ -3,10 +3,14 @@ import TicTacToe._
 trait Versus extends GameRunner {
   override def startGame: Player = {
     def iterate(state: State, nextPlayer: Player): Player = {
-      if (state.availablePositions.isEmpty) return NoPlayer
-      println(state.board.showWithPositions(NoPlayer))
-      val newState = state play getHumanMove(state, nextPlayer)
-      if (newState.isEndGame) nextPlayer else iterate(newState, nextPlayer.opponent)
+      state.winner match {
+        case None =>
+          val newState = state play getHumanMove(state, nextPlayer)
+          iterate(newState, nextPlayer.opponent)
+        case Some(player) =>
+          showState(state)
+          player
+      }
     }
 
     iterate(initialState, X)
