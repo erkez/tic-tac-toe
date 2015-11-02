@@ -14,6 +14,9 @@ trait AI extends GameRunner {
     lazy val defenderCount = row count (_.value == attacker.opponent)
     attackCount == (boardSize - 1) && defenderCount == 0
   }
+
+  def isRowBlocked(attacker: Player)(row: Vector[Cube.Element[Player]]): Boolean =
+    row exists (_.value == attacker.opponent)
   
   def hasThreat(attacker: Player)(implicit board: Cube[Player]): Boolean =
     board.sequences exists isRowThreatened(attacker)
@@ -47,13 +50,7 @@ trait AI extends GameRunner {
       if hasFork(player)
     } yield move
 
-    lazy val blockForkingPositions: Stream[Move] =
-      if (!hasFork(opponent)) Stream()
-      else for {
-        move <- availableMoves
-        newState = state play move
-        if !hasFork(opponent)
-      } yield move
+    lazy val blockForkingPositions: Stream[Move] = ???
 
     lazy val centerMove: Stream[Move] = board.center match {
       case None => Stream()
@@ -74,13 +71,12 @@ trait AI extends GameRunner {
 
     lazy val nonBlockedSequences: Stream[Move] = for {
       seq <- board.sequences.toStream
-      if seq forall (_.value != player.opponent)
-      position <- seq map (_.position)
-    } yield  (player, position)
+      if !isRowBlocked(player)(seq)
+      position <- seq filter (_.value == NoPlayer) map (_.position)
+    } yield (player, position)
 
     val priority = winningPositions ++ blockingPositions ++ forkingPositions ++
-      blockForkingPositions ++ centerMove ++ oppositeCorners ++ emptyCorners ++
-      nonBlockedSequences ++ availableMoves
+      centerMove ++ oppositeCorners ++ emptyCorners ++ nonBlockedSequences ++ availableMoves
 
     priority.head
   }
